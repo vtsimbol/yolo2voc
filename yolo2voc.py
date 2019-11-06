@@ -5,21 +5,20 @@ import argparse
 
 
 parser = argparse.ArgumentParser(description='yolo2voc')
-parser.add_argument('-a', '--label_file', default='train.txt', type=str, help='Path to YOLOv3 annotation file')
-parser.add_argument('-o', '--output_dir', default='/', type=str, help='Dir to save results')
-parser.add_argument('-c', '--class_names', default='coco.names', type=str, help='Path to YOLOv3 classes names file')
+parser.add_argument('-o', '--output_dir', default='/home/vladimir/github/FaceBoxes.PyTorch/data/data', type=str, help='Dir to save results')
+parser.add_argument('-c', '--class_names', default='/home/vladimir/dataset/data.names', type=str, help='Path to YOLOv3 classes names file')
 args = parser.parse_args()
 
 
 def get_classes():
     with open(args.class_names, 'r') as f:
-        names = [{'index': i, 'class': l[:-1]} for i, l in enumerate(f)]
+        names = [{'index': i, 'class': l} for i, l in enumerate(f)]
         return names
 
 
-def parse_yolo_data(names):
+def parse_yolo_data(label_path, names):
     labels = []
-    with open(args.label_file, 'r') as f:
+    with open(label_path, 'r') as f:
         for l in f:
             buf = l[:-1].split(' ')
             if os.path.exists(buf[1]):
@@ -64,15 +63,18 @@ def save_voc_data(data_dict):
     tree = ET.ElementTree(root)
     xml_name = f'{file_name[:-len(file_ext)]}.xml'
     tree.write(os.path.join(os.path.join(args.output_dir, 'annotations'), xml_name))
+    os.system(f'cp {data_dict["path"]} {os.path.join(os.path.join(args.output_dir, "images"), file_name)}')
     return file_name, xml_name
 
+img_list = []
+label_files = ['/home/vladimir/dataset/train.txt', '/home/vladimir/dataset/val.txt', '/home/vladimir/dataset/label.txt']
 
 names = get_classes()
-labels = parse_yolo_data(names)
-img_list = []
-for label in labels:
-    img_name, xml_path = save_voc_data(label)
-    img_list.append(f'{img_name} {xml_path}')
+for l in label_files:
+    labels = parse_yolo_data(l, names)
+    for label in labels:
+        img_name, xml_path = save_voc_data(label)
+        img_list.append(f'{img_name} {xml_path}')
 
 with open(os.path.join(args.output_dir, 'img_list.txt'), 'w') as f:
     for data in img_list:
